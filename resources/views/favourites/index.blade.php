@@ -1,31 +1,48 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container my-4">
-    <h3>My Favorite Movies</h3>
+<div class="container">
+    <h1>My Favorites</h1>
     <div class="row">
-        @forelse($favorites as $fav)
-            <div class="col-md-3 col-sm-6 mb-4">
-                <div class="card movie-card">
-                    <a href="{{ url('movies/'.$fav->imdb_id) }}">
-                        <img src="{{ $fav->poster ?: asset('images/no-image.png') }}"
-                             class="card-img-top"
-                             alt="{{ $fav->title }}">
-                    </a>
+        @foreach($favourites as $fav)
+            <div class="col-md-3 mb-4">
+                <div class="card">
+                    <img src="{{ $fav['poster'] }}" class="card-img-top" alt="{{ $fav['title'] }}">
                     <div class="card-body">
-                        <h6 class="card-title movie-title">{{ $fav->title }}</h6>
-                        <p class="text-muted movie-year">{{ $fav->year }}</p>
-                        <form action="{{ route('favorites.destroy', $fav->imdb_id) }}" method="POST">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
-                        </form>
+                        <h5 class="card-title">{{ $fav['title'] }} ({{ $fav['year'] }})</h5>
+                        @if($fav['omdb_detail'])
+                            <p>Director: {{ $fav['omdb_detail']['Director'] }}</p>
+                            <p>Genre: {{ $fav['omdb_detail']['Genre'] }}</p>
+                            <p>IMDB Rating: {{ $fav['omdb_detail']['imdbRating'] }}</p>
+                            <button data-id="{{ $fav['imdb_id'] }}" class="btn btn-outline-danger fav-btn btn-sm w-100 mt-2">❌ {{ trans('messages.delete_favourite') }}</button>
+                        @else
+                            <p>Detail OMDb tidak tersedia.</p>
+                        @endif
                     </div>
                 </div>
             </div>
-        @empty
-            <p>Belum ada film favorit.</p>
-        @endforelse
+        @endforeach
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    $(document).on('click', '.fav-btn', function() {
+        let btn = $(this);
+        let imdb_id = btn.data('id');
+        
+        $.ajax({
+            url: "{{ url('favourites') }}/" + imdb_id,
+            method: 'DELETE',
+            data: { _token: "{{ csrf_token() }}" },
+            success: function(res) {
+                console.log(res)
+                if (res.success) {
+                    location.reload();
+                }
+            }
+        });
+    });
+</script>
+@endpush

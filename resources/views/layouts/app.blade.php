@@ -13,6 +13,20 @@
         <div class="container"> {{-- px-0 agar padding kiri-kanan sama dengan content --}}
             <a class="navbar-brand" href="{{ route('movies.index') }}">{{ trans('messages.app_name') }}</a>
 
+            {{-- Menu navigasi --}}
+            <ul class="navbar-nav ms-3">
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('movies.index') ? 'active' : '' }}" href="{{ route('movies.index') }}">
+                        🎬 {{ __('Movies') }}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('favourites.index') ? 'active' : '' }}" href="{{ route('favourites.index') }}">
+                        ⭐ {{ __('Favourites') }}
+                    </a>
+                </li>
+            </ul>
+            
             <div class="d-flex align-items-center ms-auto gap-2">
                 {{-- Switch Language --}}
                 <div class="btn-group me-2">

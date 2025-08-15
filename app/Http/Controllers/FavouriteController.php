@@ -5,13 +5,64 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\FavouriteModel;
 use Illuminate\Support\Facades\Auth;
+use GuzzleHttp\Client;
 
 class FavouriteController extends Controller
 {
+    private $apiKey;
+
+    public function __construct()
+    {
+        $this->apiKey = env('OMDB_API_KEY');
+        $this->client = new Client([
+            'base_uri' => 'http://www.omdbapi.com/',
+            'timeout'  => 8.0,
+        ]);
+
+    }
+
     public function index()
     {
-        $favourites = FavouriteModel::updateOrChere('user_id', Auth::id())->get();
-        return view('favourites.index', compact('favourites'));
+        // Ambil semua data favorit dari DB
+        $favourites = FavouriteModel::all();
+
+        $favouritesDetails = [];
+
+        foreach ($favourites as $fav) {
+            try {
+                // Panggil OMDb API untuk setiap IMDb ID
+                $response = $this->client->get('', [
+                    'query' => [
+                        'apikey' => $this->apiKey,
+                        'i' => $fav->imdb_id,
+                    ]
+                ]);
+
+                $data = json_decode($response->getBody()->getContents(), true);
+
+                $favouritesDetails[] = [
+                    'id' => $fav->id,
+                    'imdb_id' => $fav->imdb_id,
+                    'title' => $fav->title,
+                    'year' => $fav->year,
+                    'poster' => $fav->poster,
+                    'omdb_detail' => $data
+                ];
+            } catch (\Exception $e) {
+                // Jika gagal request, simpan data favorit saja
+                $favouritesDetails[] = [
+                    'id' => $fav->id,
+                    'imdb_id' => $fav->imdb_id,
+                    'title' => $fav->title,
+                    'year' => $fav->year,
+                    'poster' => $fav->poster,
+                    'omdb_detail' => null,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        return view('favourites.index', ['favourites' => $favouritesDetails]);
     }
 
     public function store(Request $request)
