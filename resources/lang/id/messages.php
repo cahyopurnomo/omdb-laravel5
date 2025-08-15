@@ -13,6 +13,6 @@ return [
     'type_series'        => 'Serial',
     'type_episode'       => 'Episode',
     'logout'             => 'Keluar',
-    'add_favourite'      => 'Tambah ke Favorite',
-    'delete_favourite'   => 'Hapus dari Favorite',
+    'add_favourite'      => 'Tambah ke Favorit',
+    'delete_favourite'   => 'Hapus dari Favorit',
 ];
