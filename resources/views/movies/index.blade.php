@@ -70,7 +70,9 @@
     let typeQuery = '';
     let loading = false;
     let defaultPoster = "{{ asset('images/no-image.png') }}";
+    let favList = [];
 
+    // Ambil data filter terakhir dari localStorage
     if (localStorage.getItem('lastTitle')) {
         titleQuery = localStorage.getItem('lastTitle');
         yearQuery = localStorage.getItem('lastYear') || '';
@@ -78,6 +80,13 @@
         page = parseInt(localStorage.getItem('lastPage')) || 1;
     } else {
         titleQuery = keywords[Math.floor(Math.random() * keywords.length)];
+    }
+
+    function loadFavourites(callback) {
+        $.get("{{ route('favourites.list') }}", function(res) {
+            favList = res.success ? res.ids : [];
+            if (callback) callback();
+        });
     }
 
     function loadMovies(reset = false) {
@@ -91,6 +100,10 @@
                 let moviesHTML = '';
                 data.Search.forEach(movie => {
                     let poster = (movie.Poster && movie.Poster !== 'N/A') ? movie.Poster : defaultPoster;
+                    let isFav = favList.includes(movie.imdbID);
+                    let btnClass = isFav ? 'btn-outline-danger' : 'btn-outline-primary';
+                    let btnText = isFav ? '❌ ' + "{{ trans('messages.delete_favourite') }}" : '⭐ ' + "{{ trans('messages.add_favourite') }}";
+
                     moviesHTML += `
                         <div class="col-md-3 col-sm-6 mb-4">
                             <div class="card movie-card">
@@ -101,6 +114,13 @@
                                 <div class="card-body">
                                     <h6 class="card-title movie-title">${movie.Title}</h6>
                                     <p class="text-muted movie-year">${movie.Year}</p>
+                                    <button class="btn ${btnClass} btn-sm fav-btn"
+                                            data-id="${movie.imdbID}"
+                                            data-title="${movie.Title.replace(/"/g, '&quot;')}"
+                                            data-year="${movie.Year}"
+                                            data-poster="${poster}">
+                                        ${btnText}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -125,12 +145,50 @@
         });
     }
 
+    // Toggle favorit
+    $(document).on('click', '.fav-btn', function() {
+        let btn = $(this);
+        let imdb_id = btn.data('id');
+        let title = btn.data('title');
+        let year = btn.data('year');
+        let poster = btn.data('poster');
+
+        if (btn.hasClass('btn-outline-primary')) {
+            $.post("{{ route('favourites.store') }}", {
+                _token: "{{ csrf_token() }}",
+                imdb_id: imdb_id,
+                title: title,
+                year: year,
+                poster: poster
+            }, function(res) {
+                if (res.success) {
+                    btn.removeClass('btn-outline-primary').addClass('btn-outline-danger').text('❌ Hapus dari Favorit');
+                    favList.push(imdb_id);
+                }
+            });
+        } else {
+            $.ajax({
+                url: "{{ url('favourites') }}/" + imdb_id,
+                method: 'DELETE',
+                data: { _token: "{{ csrf_token() }}" },
+                success: function(res) {
+                    if (res.success) {
+                        btn.removeClass('btn-outline-danger').addClass('btn-outline-primary').text('⭐ Tambah ke Favorit');
+                        favList = favList.filter(id => id !== imdb_id);
+                    }
+                }
+            });
+        }
+    });
+
     $(document).ready(function() {
         $('#titleInput').val(titleQuery);
         $('#yearInput').val(yearQuery);
         $('#typeSelect').val(typeQuery);
 
-        loadMovies(true);
+        loadFavourites(function() {
+            loadMovies(true);
+        });
 
         $('#titleInput, #yearInput').on('keyup', function(e) {
             if (e.keyCode === 13) {

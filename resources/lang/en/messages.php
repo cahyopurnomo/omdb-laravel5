@@ -13,4 +13,6 @@ return [
     'type_series'        => 'Series',
     'type_episode'       => 'Episode',
     'logout'             => 'Logout',
+    'add_favourite'      => 'Add to Favourite',
+    'delete_favourite'   => 'Remove from Favourite',
 ];

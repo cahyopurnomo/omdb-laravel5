@@ -40,6 +40,9 @@
                 <strong>Runtime:</strong> {{ $movie['Runtime'] }}
             </p>
             
+            <!-- Tombol Tambah ke Favorit -->
+            <button class="btn fav-btn mb-3"></button>
+
             <div class="movie-meta">
                 <p><strong>Genre:</strong> {{ $movie['Genre'] }}</p>
                 <p><strong>Director:</strong> {{ $movie['Director'] }}</p>
@@ -54,27 +57,93 @@
             <h5>Plot</h5>
             <p>{{ $movie['Plot'] }}</p>
 
-            <button type="button" class="btn btn-secondary mt-3" onclick="goBackToSearch()">⬅ {{ trans('messages.back_to_search') }}</button>
+            <button type="button" class="btn btn-outline-secondary mt-3" onclick="goBackToSearch()">⬅ {{ trans('messages.back_to_search') }}</button>
         </div>
+
     </div>
 </div>
 @endsection
 
 @push('scripts')
 <script>
-function goBackToSearch() {
-    let lastTitle = localStorage.getItem('lastTitle') || '';
-    let lastYear = localStorage.getItem('lastYear') || '';
-    let lastType = localStorage.getItem('lastType') || '';
-    let lastPage = localStorage.getItem('lastPage') || 1;
+    let favList = [];
+    $('.btn-favourite').hide();
 
-    let params = new URLSearchParams();
-    if (lastTitle) params.append('q', lastTitle);
-    if (lastYear) params.append('y', lastYear);
-    if (lastType) params.append('type', lastType);
-    params.append('page', lastPage);
+    function goBackToSearch() {
+        let lastTitle = localStorage.getItem('lastTitle') || '';
+        let lastYear = localStorage.getItem('lastYear') || '';
+        let lastType = localStorage.getItem('lastType') || '';
+        let lastPage = localStorage.getItem('lastPage') || 1;
 
-    window.location.href = "{{ route('movies.index') }}" + '?' + params.toString();
-}
+        let params = new URLSearchParams();
+        if (lastTitle) params.append('q', lastTitle);
+        if (lastYear) params.append('y', lastYear);
+        if (lastType) params.append('type', lastType);
+        params.append('page', lastPage);
+
+        window.location.href = "{{ route('movies.index') }}" + '?' + params.toString();
+    }
+
+    function loadFavourites(callback) {
+        $.get("{{ route('favourites.list') }}", function(res) {
+            favList = res.success ? res.ids : [];
+            if (callback) callback();
+        });
+    }
+
+    $(document).on('click', '.fav-btn', function() {
+        let btn = $(this);
+        let imdb_id = btn.data('id');
+        let title = btn.data('title');
+        let year = btn.data('year');
+        let poster = btn.data('poster');
+
+        if (btn.hasClass('btn-outline-primary')) {
+            $.post("{{ route('favourites.store') }}", {
+                _token: "{{ csrf_token() }}",
+                imdb_id: imdb_id,
+                title: title,
+                year: year,
+                poster: poster
+            }, function(res) {
+                if (res.success) {
+                    btn.removeClass('btn-outline-primary').addClass('btn-outline-danger').text('❌ Hapus dari Favorit');
+                    favList.push(imdb_id);
+                }
+            });
+        } else {
+            $.ajax({
+                url: "{{ url('favourites') }}/" + imdb_id,
+                method: 'DELETE',
+                data: { _token: "{{ csrf_token() }}" },
+                success: function(res) {
+                    if (res.success) {
+                        btn.removeClass('btn-outline-danger').addClass('btn-outline-primary').text('⭐ Tambah ke Favorit');
+                        favList = favList.filter(id => id !== imdb_id);
+                    }
+                }
+            });
+        }
+    });
+
+    $(document).ready(function() {
+        loadFavourites(function() {
+            let imdbID = "{{ $movie['imdbID'] }}";
+            let title = "{{ $movie['Title'] }}";
+            let year = "{{ $movie['Year'] }}";
+            let poster = "{{ $movie['Poster'] }}";
+
+            let isFav = favList.includes(imdbID);
+            let btnClass = isFav ? 'btn-outline-danger' : 'btn-outline-primary';
+            let btnText = isFav ? '❌ ' + "{{ trans('messages.delete_favourite') }}" : '⭐ ' + "{{ trans('messages.add_favourite') }}";
+            
+            $('.fav-btn').addClass(btnClass).text(btnText);
+            $('.fav-btn').attr('data-id', imdbID);
+            $('.fav-btn').attr('data-title', title);
+            $('.fav-btn').attr('data-year', year);
+            $('.fav-btn').attr('data-poster', poster);
+            $('.fav-btn').show();
+        });
+    });
 </script>
 @endpush

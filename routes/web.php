@@ -24,6 +24,12 @@ Route::group(['middleware' => ['auth','locale']], function () {
     Route::get('/movies/search', 'MovieController@search')->name('movies.search');
     Route::get('/movies/{id}', 'MovieController@show')->name('movies.show'); // new
     Route::get('/logout', 'Auth\LoginController@logout')->name('logout');
+
+    Route::get('/favourites', 'FavouriteController@index')->name('favourites.index');
+    Route::post('/favourites', 'FavouriteController@store')->name('favourites.store');
+    Route::delete('/favourites/{id}', 'FavouriteController@destroy')->name('favourites.destroy');
+    Route::get('favourites/list', 'FavouriteController@list')->name('favourites.list'); // untuk AJAX cek favorit existing
+
 });
 
 Route::get('lang/{locale}', function ($locale) {
